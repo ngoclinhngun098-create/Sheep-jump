@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Black & White Sheep — 500,000 Jumps</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; width: 100%; height: 100%; overflow: hidden;
+    background: #dff3ff;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Arial, sans-serif;
+  }
+  #game {
+    position: relative; width: 100vw; height: 100vh; overflow: hidden;
+    background: linear-gradient(#dff5ff 0%, #f8fcff 68%, #d9f0c8 68%, #c7e7ad 100%);
+  }
+  .cloud {
+    position: absolute; background: white; border-radius: 999px;
+    opacity: .85; filter: blur(.2px);
+  }
+  .cloud:before, .cloud:after {
+    content:""; position:absolute; background:white; border-radius:50%;
+  }
+  .cloud:before { width: 45%; height: 150%; left: 18%; top: -55%; }
+  .cloud:after { width: 38%; height: 125%; right: 15%; top: -40%; }
+  #counter {
+    position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
+    z-index: 20; text-align: center; color: #111; font-weight: 900;
+    font-size: clamp(32px, 8vw, 64px); letter-spacing: -2px;
+    text-shadow: 0 3px 0 rgba(255,255,255,.9);
+    white-space: nowrap;
+  }
+  #counter small {
+    display:block; font-size: clamp(11px, 2.5vw, 16px); letter-spacing: 3px;
+    font-weight: 800; margin-bottom: 2px; color:#555;
+  }
+  #field {
+    position:absolute; left:0; right:0; bottom:0; height:32%;
+    border-top: 4px solid #94c875;
+  }
+  .grass {
+    position:absolute; bottom:0; width:100%; height:100%;
+    background:
+      repeating-linear-gradient(100deg, transparent 0 20px, rgba(83,139,66,.18) 21px 23px),
+      #c7e7ad;
+  }
+  #track {
+    position:absolute; left:0; right:0; bottom:27%;
+    height:4px; background:rgba(105,135,92,.35);
+  }
+  #sheep {
+    position:absolute; z-index:10;
+    width:110px; height:88px;
+    left:-130px; bottom:calc(27% - 5px);
+    transform-origin: center bottom;
+    will-change: transform, left, bottom;
+  }
+  .body {
+    position:absolute; width:74px; height:56px; left:18px; top:10px;
+    background:white; border:4px solid #161616; border-radius:48% 52% 45% 48%;
+    box-shadow: inset 0 -6px 0 #eee;
+  }
+  .wool {
+    position:absolute; width:23px; height:23px; background:white;
+    border:4px solid #161616; border-radius:50%;
+  }
+  .w1 {left:18px;top:0}.w2{left:37px;top:-5px}.w3{left:58px;top:0}.w4{left:73px;top:10px}
+  .head {
+    position:absolute; width:38px; height:42px; right:-1px; top:25px;
+    background:#181818; border-radius:48% 48% 45% 45%;
+    border:3px solid #111;
+  }
+  .face {
+    position:absolute; width:30px; height:24px; left:2px; top:11px;
+    background:#202020; border-radius:50%;
+  }
+  .eye {
+    position:absolute; width:5px; height:5px; background:white; border-radius:50%;
+    top:10px;
+  }
+  .e1{left:7px}.e2{right:7px}
+  .ear {
+    position:absolute; width:17px; height:10px; background:#161616;
+    border-radius:50%; top:7px;
+  }
+  .ear1{left:-12px;transform:rotate(18deg)} .ear2{right:-11px;transform:rotate(-18deg)}
+  .leg {
+    position:absolute; width:10px; height:27px; background:#151515;
+    border-radius:8px; top:58px; transform-origin:top center;
+  }
+  .l1{left:30px}.l2{left:48px}.l3{left:67px}.l4{left:82px}
+  .hoof {
+    position:absolute; width:14px; height:6px; background:#111; border-radius:8px;
+    bottom:-2px; left:-2px;
+  }
+  #message {
+    position:absolute; bottom:15px; left:50%; transform:translateX(-50%);
+    z-index:20; color:#55704c; font-weight:700; font-size:13px;
+    text-align:center; white-space:nowrap;
+  }
+  #finish {
+    display:none; position:absolute; inset:0; z-index:30;
+    align-items:center; justify-content:center; flex-direction:column;
+    background:rgba(255,255,255,.88); text-align:center;
+  }
+  #finish h1 { margin:0; font-size:clamp(34px,10vw,70px); }
+  #finish p { font-size:18px; font-weight:700; }
+  @media (prefers-reduced-motion: reduce) {
+    /* Still animates because the whole point is counting jumps. */
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div class="cloud" style="width:130px;height:30px;left:8%;top:18%;"></div>
+  <div class="cloud" style="width:170px;height:34px;right:10%;top:27%;"></div>
+  <div class="cloud" style="width:100px;height:25px;left:48%;top:11%;"></div>
+
+  <div id="counter"><small>JUMPS</small><span id="number">0</span> / 500,000</div>
+
+  <div id="track"></div>
+  <div id="field"><div class="grass"></div></div>
+
+  <div id="sheep" aria-label="black and white sheep">
+    <div class="wool w1"></div><div class="wool w2"></div><div class="wool w3"></div><div class="wool w4"></div>
+    <div class="body"></div>
+    <div class="head">
+      <div class="ear ear1"></div><div class="ear ear2"></div>
+      <div class="face"><span class="eye e1"></span><span class="eye e2"></span></div>
+    </div>
+    <div class="leg l1"><div class="hoof"></div></div>
+    <div class="leg l2"><div class="hoof"></div></div>
+    <div class="leg l3"><div class="hoof"></div></div>
+    <div class="leg l4"><div class="hoof"></div></div>
+  </div>
+
+  <div id="message">🐑 cứ chạy và nhảy… tới 500.000!</div>
+
+  <div id="finish">
+    <h1>🐑 500,000!</h1>
+    <p>Con cừu đã hoàn thành đủ 500.000 cú nhảy 🎉</p>
+  </div>
+</div>
+
+<script>
+(() => {
+  const sheep = document.getElementById('sheep');
+  const number = document.getElementById('number');
+  const finish = document.getElementById('finish');
+  const game = document.getElementById('game');
+
+  const TARGET = 500000;
+  let jumps = 0;
+  let x = -140;
+  let last = performance.now();
+  let jumpStart = 0;
+  let jumping = false;
+  let nextJumpAt = 0;
+  let speed = 250;       // px/sec
+  let jumpDuration = 520; // ms
+  let jumpHeight = 105;
+
+  function resize() {
+    // Keep the sheep comfortably sized on very small screens.
+    const scale = Math.max(0.78, Math.min(1, innerWidth / 500));
+    sheep.style.transformOrigin = 'center bottom';
+    sheep.dataset.scale = scale;
+  }
+  addEventListener('resize', resize);
+  resize();
+
+  function startJump(now) {
+    if (jumps >= TARGET) return;
+    jumping = true;
+    jumpStart = now;
+    jumps++;
+    number.textContent = jumps.toLocaleString('en-US');
+  }
+
+  function animate(now) {
+    const dt = Math.min(40, now - last);
+    last = now;
+
+    const W = game.clientWidth;
+    const sheepW = 110;
+
+    x += speed * dt / 1000;
+    if (x > W + 20) x = -sheepW - 10;
+
+    if (!jumping && now >= nextJumpAt) startJump(now);
+
+    let y = 0;
+    if (jumping) {
+      const t = (now - jumpStart) / jumpDuration;
+      if (t >= 1) {
+        jumping = false;
+        nextJumpAt = now + 260 + Math.random() * 240;
+      } else {
+        // Smooth parabolic jump.
+        y = Math.sin(Math.PI * t) * jumpHeight;
+      }
+    }
+
+    sheep.style.left = x + 'px';
+    sheep.style.bottom = `calc(27% + ${y}px)`;
+
+    // Tiny leg animation while running.
+    const phase = now / 95;
+    document.querySelector('.l1').style.transform = `rotate(${Math.sin(phase)*18}deg)`;
+    document.querySelector('.l2').style.transform = `rotate(${-Math.sin(phase)*18}deg)`;
+    document.querySelector('.l3').style.transform = `rotate(${-Math.sin(phase)*18}deg)`;
+    document.querySelector('.l4').style.transform = `rotate(${Math.sin(phase)*18}deg)`;
+
+    if (jumps >= TARGET && !jumping) {
+      finish.style.display = 'flex';
+      return;
+    }
+    requestAnimationFrame(animate);
+  }
+
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
